@@ -28,7 +28,7 @@ jobs:
 
       - name: Add Android platform (Capacitor)
         run: npx cap add android
-   - name: Générer icônes & splash
+      - name: Générer icônes & splash
         run: npx @capacitor/assets generate --android
       - name: Sync web assets into Android project
         run: npx cap sync android
