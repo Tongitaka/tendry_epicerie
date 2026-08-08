@@ -1,0 +1,12 @@
+{
+  "appId": "mg.tendry.epicerie",
+  "appName": "Tendry Epicerie",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}
