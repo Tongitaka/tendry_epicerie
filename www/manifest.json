@@ -1,0 +1,14 @@
+{
+  "name": "Tendry Epicerie",
+  "short_name": "Tendry",
+  "description": "Fitantanana Epicerie - Varotra, Stock, Bilan, Recette",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#e2e8f0",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
