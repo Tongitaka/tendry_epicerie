@@ -8,6 +8,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      has_keystore: ${{ steps.check_secret.outputs.has_keystore }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +30,10 @@ jobs:
 
       - name: Add Android platform (Capacitor)
         run: npx cap add android
+
       - name: Générer icônes & splash
         run: npx @capacitor/assets generate --android
+
       - name: Sync web assets into Android project
         run: npx cap sync android
 
@@ -50,6 +54,15 @@ jobs:
           name: tendry-epicerie-debug-apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
+      - name: Check if release keystore secret is set
+        id: check_secret
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "has_keystore=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_keystore=false" >> "$GITHUB_OUTPUT"
+          fi
+
   # ============================================================
   # Job faharoa: APK/AAB "signé" ho an'ny Play Store.
   # Mandeha ihany io raha efa voatahiry ao amin'ny GitHub Secrets
@@ -58,7 +71,7 @@ jobs:
   build-release:
     needs: build
     runs-on: ubuntu-latest
-    if: ${{ secrets.KEYSTORE_BASE64 != '' }}
+    if: needs.build.outputs.has_keystore == 'true'
     env:
       KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
       KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
