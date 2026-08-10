@@ -1,0 +1,1473 @@
+<!DOCTYPE html>
+<html lang="mg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epicerie Tendry</title>
+    <link rel="manifest" href="manifest.json">
+<script src="html5-qrcode.min.js"></script>
+    <script src="chart.js"></script>
+    <style>
+        :root { 
+            --header-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            --primary: #6366f1; --success: #10b981; --danger: #ef4444; 
+            --bg: #e2e8f0; --card-bg: white; --text-main: #1e293b; --text-sub: #64748b;
+            --input-bg: #f8fafc; --border: #f1f5f9;
+        }
+
+        /* Dark Mode Colors */
+        [data-theme="dark"] {
+            --bg: #0f172a; --card-bg: #1e293b; --text-main: #f1f5f9; --text-sub: #94a3b8;
+            --input-bg: #334155; --border: #334155;
+        }
+
+       body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--bg); 
+            color: var(--text-main);
+            margin: 0; 
+            padding-top: 110px; 
+            padding-bottom: 100px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;   
+            min-height: 100vh;
+            box-sizing: border-box;
+            transition: background 0.3s ease;
+        }
+
+        .header { 
+            background: var(--header-grad); 
+            padding: 15px 20px; 
+            border-radius: 0 0 35px 35px; 
+            color: white; 
+            position: fixed; 
+            top: 0; left: 0; right: 0; 
+            z-index: 1000; 
+            box-shadow: 0 10px 25px rgba(79, 70, 229, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 65px;
+        }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        #main-logo { width: 45px; height: 45px; border-radius: 12px; object-fit: cover; background: rgba(255,255,255,0.2); }
+        .header-text b { font-size: 1.1rem; }
+        .header-text p { margin: 0; font-size: 0.75rem; opacity: 0.9; }
+        
+        .header-btns { display: flex; gap: 8px; }
+        .info-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+
+        .section { 
+            display: none; 
+            width: 95%;           
+            max-width: 780px;     
+            background: var(--card-bg); 
+            border-radius: 35px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1); 
+            padding: 20px;
+            box-sizing: border-box; 
+            margin: 10px auto;    
+            transition: all 0.3s ease; 
+        }
+        .section.active { display: block; }
+
+        .nav-bar { 
+            position: fixed; 
+            bottom: 0; left: 0; right: 0; 
+            background: var(--card-bg); 
+            display: flex; 
+            justify-content: space-around; 
+            padding: 15px 0;
+            z-index: 1000;
+            border-radius: 35px 35px 0 0; 
+            box-shadow: 0 -10px 30px rgba(0,0,0,0.08);
+        }
+        .nav-item { border: none; background: none; color: var(--text-sub); cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .nav-item.active { color: var(--primary); }
+        .nav-item i { font-size: 20px; font-style: normal; }
+        .nav-item span { font-size: 10px; font-weight: 600; }
+
+        h3, h4 { margin: 0 0 15px 0; color: var(--primary); font-size: 1.2rem; text-align: center; }
+        input, select { width: 100%; padding: 14px; margin: 8px 0; border: 1.5px solid var(--border); border-radius: 18px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--text-main); box-sizing: border-box; }
+        input:focus { border-color: var(--primary); }
+        
+        .btn-main { background: var(--primary); color: white; border: none; padding: 16px; border-radius: 18px; width: 100%; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .btn-outline { background: transparent; border: 1.5px solid var(--border); padding: 12px; border-radius: 18px; width: 100%; margin-top: 8px; cursor: pointer; color: var(--text-sub); font-weight: 500; }
+
+        .overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; }
+        .modal-content { width: 75%; max-width: 400px; background: var(--card-bg); border-radius: 35px; padding: 25px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); position: relative; color: var(--text-main); }
+        
+        .table-res { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+        .table-res th { text-align: left; padding: 8px; color: var(--text-sub); border-bottom: 1px solid var(--border); }
+        .table-res td { padding: 12px 8px; border-bottom: 1px solid var(--border); color: var(--text-main); }
+        
+        .mode-switch { display: flex; background: var(--input-bg); border-radius: 15px; padding: 5px; margin-bottom: 15px; }
+        .mode-switch button { flex: 1; border: none; padding: 10px; border-radius: 12px; cursor: pointer; background: none; color: var(--text-sub); font-weight: 600; }
+        .mode-switch button.active { background: var(--card-bg); color: var(--primary); box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+
+        #reader { width: 100%; border-radius: 20px; overflow: hidden; border: 2px solid var(--primary); background:#000; min-height: 220px; }
+        #scanner-overlay .modal-content { width: 90%; max-width: 420px; text-align: center; }
+        #scanner-hint { font-size: 0.75rem; color: var(--text-sub); margin-top: 10px; }
+        .extra-detail-box { display: none; background: rgba(34, 197, 94, 0.1); padding: 15px; border-radius: 18px; border: 1px dashed #22c55e; margin: 10px 0; }
+        .btn-plus { background: var(--input-bg); color: var(--primary); border: none; width: 35px; height: 35px; border-radius: 50%; font-weight: bold; cursor: pointer; margin-left: 10px; }
+        #lock-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); z-index: 9999; color: white; text-align: center; padding-top: 20vh; }
+        
+        .trial-banner {
+            background: #ef4444; color: white; width: 100%; text-align: center;
+            padding: 8px 0; font-size: 0.85rem; font-weight: bold; position: fixed;
+            top: 0; z-index: 2000; display: none;
+        }
+
+        /* Chart container */
+        .chart-container { margin-top: 20px; padding: 10px; background: var(--input-bg); border-radius: 20px; }
+
+        /* --- KAJY VOLA (CASH CALCULATOR) --- */
+        .kajy-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .kajy-btn { background: var(--card-bg); border: 1.5px solid var(--border); border-radius: 16px; padding: 14px 6px; cursor: pointer; display: flex; flex-direction: column; align-items: center; transition: all 0.15s ease; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+        .kajy-btn:active { transform: scale(0.92); background: var(--primary); border-color: var(--primary); }
+        .kajy-btn:active .kajy-btn-val, .kajy-btn:active .kajy-btn-ar { color: white; }
+        .kajy-btn-val { font-weight: 800; font-size: 1rem; color: var(--text-main); }
+        .kajy-btn-ar { font-size: 0.65rem; color: var(--text-sub); font-weight: 600; margin-top: 2px; }
+        .kajy-mini-btn { background: var(--input-bg); color: var(--primary); border: none; width: 26px; height: 26px; border-radius: 50%; font-weight: bold; cursor: pointer; }
+
+        /* --- JOURNAL --- */
+        #journal-overlay .modal-content { text-align: left; }
+        #journal-overlay details summary { list-style: none; }
+        #journal-overlay details summary::-webkit-details-marker { display: none; }
+        .j-select { width: 100%; padding: 12px; border: 1.5px solid var(--border); border-radius: 16px; font-size: 13px; outline: none; background: var(--input-bg); color: var(--text-main); box-sizing: border-box; }
+
+        @media print {
+            body * { display: none !important; }
+            #print-zone, #print-zone * { display: block !important; }
+            #print-zone { position: absolute; left: 0; top: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="trial-msg" class="trial-banner">⚠️ Version d'essai: 1 andro sisa</div>
+<div id="print-zone"></div>
+<div id="scanner-overlay" class="overlay">
+    <div class="modal-content">
+        <h3>📷 Scan Code</h3>
+        <div id="reader"></div>
+        <p id="scanner-hint">Apetraho eo anatin'ny efijery ny Barcode/QR Code.</p>
+        <button class="btn-outline" onclick="stopScanner()" style="margin-top:12px;">✕ Hijanona / Hakatona</button>
+    </div>
+</div>
+<div class="header" id="main-header">
+    <div class="logo-area">
+        <img id="main-logo" src="">
+       <div class="header-text">
+    <b id="h-name">TENDRY EPICERIE</b>
+    <p id="h-info-biz" style="font-size: 0.65rem; opacity: 0.8; margin-top: 2px;"></p>
+</div>
+    </div>
+    <div class="header-btns">
+        <button class="info-btn" onclick="openJournal()" title="Journal">📔</button>
+        <button class="info-btn" onclick="toggleTheme()" id="theme-btn">🌙</button>
+        <button class="info-btn" onclick="openApropos()">i</button>
+    </div>
+</div>
+
+<div id="sec-entana" class="section">
+    <h3>📝 Famoronana Entana</h3>
+<div style="background:var(--input-bg); padding:15px; border-radius:20px; border:1px solid var(--border);">
+    <div style="display: flex; gap: 5px;">
+        <input type="text" id="reg-code" placeholder="Scan na ampidiro Code..." style="flex:1;">
+        <button class="btn-outline" style="width: 50px; margin: 8px 0;" onclick="startScanner('reg-code')">📷</button>
+    </div>
+    <input type="text" id="reg-name" placeholder="Anaran'ny entana (ohatra: Vary Gasy)">
+        <div style="display:flex; gap:10px;">
+            <select id="reg-unit-gros" style="flex:1;">
+                <option>Carton</option>
+                <option>Sac</option>
+                <option>Pack</option>
+                <option>Bidon</option>
+                <option>Gony</option>
+                <option>Caisse</option>
+                 <option>Paquet</option>
+                 <option>planche</option>
+                 <option>Jerrycan</option>
+                 <option>Sobika</option>
+                 <option>Balle</option>
+                 <option>Cartouche</option>
+                 <option>Boite</option>
+                 <option>Planche</option>
+                 <option>Rouleau</option>
+                 
+            </select>
+            <select id="reg-unit-det" style="flex:1;">
+                <option>Pcs</option>
+                <option>Kg</option>
+                <option>Litre</option>
+                <option>Bout</option>
+                <option>Kapoaka</option>
+                <option>Tige</option>
+                <option>Paquet</option>
+                 <option>Sachet</option>
+               <option>metre</option>
+            </select>
+        </div>
+        <input type="number" id="reg-conv" placeholder="Contenu (Detail ao anaty Gros)">
+        <button class="btn-main" onclick="registerProduct()">💾 Tehirizina ny Entana</button>
+    </div>
+    <div id="catalog-display" style="margin-top:15px;"></div>
+</div>
+
+<div id="sec-varotra" class="section active">
+    <h3>🛒 Varotra</h3>
+    <div class="mode-switch">
+        <button id="v-det" class="active" onclick="setMode('detail')">Détail</button>
+        <button id="v-gros" onclick="setMode('gros')">Gros</button>
+    </div>
+    
+    
+    
+    <div style="display: flex; gap: 5px;">
+        <input list="stock-list-pos" id="p-entana" placeholder="Karohy na Scan Code..." oninput="updatePosPreview()" style="flex: 1;">
+        <button class="btn-outline" style="width: 50px; margin: 8px 0;" onclick="startScanner('p-entana')">📷</button>
+    </div>
+
+    <datalist id="stock-list-pos"></datalist>
+    <div style="display: flex; gap: 10px;">
+        <input type="number" id="p-qty" placeholder="Isany" oninput="updatePosPreview()">
+        <div id="p-unit-view" style="background:var(--input-bg); padding:15px; border-radius:18px; min-width:60px; text-align:center; font-weight:bold; color:var(--text-sub); border:1px solid var(--border);">-</div>
+    </div>
+    <div id="p-calc-view" style="font-size:0.85rem; color:var(--primary); text-align:center; margin-bottom:10px; font-weight:bold;">P.U: 0 Ar | Total: 0 Ar</div>
+    <button class="btn-main" onclick="addToPanier()">➕ Hamafisina (Ajouter)</button>
+    <div style="margin-top:20px; border-top: 2px solid var(--border); padding-top:10px;">
+        <table class="table-res"><thead><tr><th>ENTANA</th><th>QTY</th><th>TOTAL</th><th></th></tr></thead><tbody id="panier-body"></tbody></table>
+    </div>
+    <div style="background:var(--input-bg); padding:15px; border-radius:25px; margin-top:15px; border: 1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center;"><span style="font-weight:bold; color:var(--text-sub);">TOTAL ALOA:</span><span id="p-final-total" style="font-size:1.4rem; font-weight:900; color:var(--primary);">0</span></div>
+        <input type="text" id="p-client" placeholder="Anaran'ny mpanjifa">
+        <input type="number" id="p-vola" placeholder="Vola nentiny (Ar)" oninput="calcRendu()">
+        <div id="p-rendu-view" style="color:var(--success); font-weight:bold; text-align:right; font-size:0.9rem;">Rendu: 0 Ar</div>
+    </div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
+        <button class="btn-main" onclick="conclureVente(false)" style="background:#4f46e5;">💸 Vita ny Varotra</button>
+        <button class="btn-outline" onclick="verifyPinAction(() => conclureVente(true))">🖨️ Facture</button>
+    </div>
+</div>
+
+<div id="sec-stock" class="section">
+    <h3>📦 Fitantanana Stock</h3>
+    <div style="background:var(--input-bg); padding:15px; border-radius:20px; border:1px solid var(--border);">
+        <div id="s-info-auto" style="font-size:0.75rem; color:var(--primary); font-weight:bold; margin-bottom:5px;">Vidin'ny gros farany: 0 Ar</div>
+        <div style="display: flex; gap: 5px;">
+            <input list="catalog-list" id="s-name" placeholder="Fidio na Scan Code..." oninput="checkCatalogSelection(this.value)" style="flex:1;">
+            <button class="btn-outline" style="width: 50px; margin: 8px 0;" onclick="startScanner('s-name')">📷</button>
+        </div>
+        <datalist id="catalog-list"></datalist>
+        <div style="display:flex; gap:10px;">
+            <select id="s-unit-gros" style="flex:1;">
+				<option>Carton</option>
+                <option>Sac</option>
+                <option>Pack</option>
+                <option>Bidon</option>
+                <option>Gony</option>
+                <option>Caisse</option>
+                 <option>Paquet</option>
+                 <option>planche</option>
+                 <option>Jerrycan</option>
+                 <option>Sobika</option>
+                 <option>Balle</option>
+                 <option>Cartouche</option>
+                 <option>Boite</option>
+                 <option>Planche</option>
+                 <option>Rouleau</option>
+			</select>
+            <input type="number" id="s-qty-gros" placeholder="Isany (Gros)" style="flex:1;">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <select id="s-unit-det" style="flex: 1;">
+				<option>Pcs</option>
+                <option>Kg</option>
+                <option>Litre</option>
+                <option>Bout</option>
+                <option>Kapoaka</option>
+                <option>Tige</option>
+                <option>Paquet</option>
+                 <option>Sachet</option>
+               <option>metre</option>
+			</select>
+            <input type="number" id="s-conv" placeholder="Isany ao anaty Gros" style="flex: 2;" oninput="calcStockPrice()">
+        </div>
+        <div style="display:flex; align-items:center;">
+            <input type="number" id="s-p-achat-gros" placeholder="Vidin'ny Achat Gros" style="flex:1;" oninput="calcStockPrice()">
+            <button class="btn-plus" onclick="toggleExtraDetail()">+</button>
+        </div>
+        <div id="s-calc-det-preview" style="font-size:0.75rem; color:var(--text-sub); margin:5px 0;">Vidin'ny détail: 0 Ar</div>
+        <div id="extra-detail-box" class="extra-detail-box">
+            <small style="font-weight:bold; color:#16a34a;">Detail fanampiny:</small>
+            <input type="number" id="s-extra-qty" placeholder="Isany Detail">
+            <input type="number" id="s-extra-price" placeholder="Prix Detail">
+        </div>
+        <div style="display:flex; gap:10px;">
+            <input type="number" id="s-pv-det" placeholder="P.Vente Détail">
+            <input type="number" id="s-pv-gros" placeholder="P.Vente Gros">
+        </div>
+        <button class="btn-main" onclick="saveToStock()">✅ Hamafisina ny Stock</button>
+    </div>
+    <div style="display:flex; gap:10px; margin-top:20px;">
+        <input type="text" id="s-search" placeholder="🔍 Karohy..." oninput="renderStock()" style="margin:0;">
+        <button onclick="verifyPinAction(togglePA)" style="width:50px; border-radius:18px; border:1px solid var(--border); background:var(--card-bg); color:var(--text-main);">👁️</button>
+    </div>
+    <div id="stock-display" style="margin-top:15px;"></div>
+</div>
+
+<div id="sec-bilan" class="section">
+    <h3>📊 Bilan & Trosa</h3>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:center;">
+        <div style="background:rgba(16, 185, 129, 0.1); padding:15px; border-radius:20px; border:1px solid var(--success);"><small>Tombony Androany</small><br><b id="b-profit" style="color:var(--success)">0 Ar</b></div>
+        <div style="background:rgba(239, 68, 68, 0.1); padding:15px; border-radius:20px; border:1px solid var(--danger);"><small>Total Trosa</small><br><b id="b-trosa" style="color:var(--danger)">0 Ar</b></div>
+    </div>
+    <div style="background:rgba(99, 102, 241, 0.1); padding:15px; border-radius:20px; margin-top:10px; text-align:center; border:1px solid var(--primary);"><small>Valeur Stock sisa</small><br><b id="b-valeur" style="color:var(--primary)">0 Ar</b></div>
+    
+    <div class="chart-container">
+        <canvas id="profitChart"></canvas>
+    </div>
+
+    <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+    <h4>➕ Ampiditra Trosa</h4>
+    <input type="text" id="t-name" placeholder="Anaran'ny mpitrosa">
+    <input type="number" id="t-vola" placeholder="Vola trosa (Ar)">
+    <button class="btn-main" onclick="addTrosa()">Ampiditra Trosa</button>
+    <div id="trosa-display" style="margin-top:15px;"></div>
+</div>
+
+<div id="sec-admin" class="section">
+    <h3>⚙️ Admin & Commande</h3>
+    <button class="btn-main" onclick="verifyPinAction(exportJournalCSV)" style="background:#059669;">📥 Exporter Journal (CSV)</button>
+
+    <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+    <h4>💾 Backup Application Manontolo</h4>
+    <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin-top:-8px;">Ilaina io rehefa hanova finday: tahirizo ny rakitra, ary avereno (Restaurer) ao amin'ny finday vaovao mba hiverenan'ny angona rehetra (Entana, Stock, Varotra, Trosa, Recette, Paramètre...).</p>
+    <button class="btn-main" onclick="verifyPinAction(exportFullBackup)" style="background:var(--primary);">💾 Hitahiry Backup Manontolo</button>
+    <button class="btn-outline" onclick="verifyPinAction(triggerImportBackup)" style="margin-top:8px;">📤 Restaurer Backup (Manova Finday)</button>
+    <input type="file" id="backup-file-input" accept="application/json,.json" style="display:none" onchange="importFullBackup(this)">
+
+    <hr style="border:0; border-top:1px solid var(--border); margin:20px 0;">
+    <h4>📝 Bon de Commande</h4>
+    <input type="text" id="c-phone" placeholder="Laharana Mpamatsy">
+    <input list="catalog-list" id="c-item-name" placeholder="Fidio ny entana...">
+    <div style="display:flex; gap:10px;">
+        <input type="number" id="c-qty" placeholder="Isany">
+        <select id="c-unit" style="flex:1;">
+		<option>Carton</option>
+                <option>Sac</option>
+                <option>Pack</option>
+                <option>Bidon</option>
+                <option>Gony</option>
+                <option>Caisse</option>
+                 <option>Paquet</option>
+                 <option>planche</option>
+                 <option>Jerrycan</option>
+                 <option>Sobika</option>
+                 <option>Balle</option>
+                 <option>Cartouche</option>
+                 <option>Boite</option>
+                 <option>Planche</option>
+                 <option>Rouleau</option>
+				 <option>Pcs</option>
+                <option>Kg</option>
+                <option>Litre</option>
+                <option>Bout</option>
+                <option>Kapoaka</option>
+                <option>Tige</option>
+           
+                 <option>Sachet</option>
+               <option>metre</option>
+		</select>
+    </div>
+    <button class="btn-outline" onclick="addCmdItem()">➕ Ampiana amin'ny lisitra</button>
+    <div id="cmd-list-preview" style="margin-top:10px;"></div>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:15px;">
+        <button class="btn-main" onclick="sendFinalCmd('wa')" style="background:#25d366;">WhatsApp</button>
+        <button class="btn-main" onclick="sendFinalCmd('sms')" style="background:#3b82f6;">SMS</button>
+    </div>
+</div>
+
+<div id="sec-kajy" class="section">
+    <h3>💰 Kajy Vola (Calculatrice)</h3>
+    <div style="background:var(--input-bg); padding:15px; border-radius:20px; border:1px solid var(--border); text-align:center; margin-bottom:15px;">
+        <small style="color:var(--text-sub); font-weight:600;">TOTAL VOAKAJY</small>
+        <div id="kajy-total" style="font-size:1.9rem; font-weight:900; color:var(--primary);">0 Ar</div>
+    </div>
+    <div class="kajy-grid" id="kajy-grid"></div>
+    <div id="kajy-detail" style="margin-top:15px;"></div>
+    <button class="btn-outline" onclick="resetKajy()" style="margin-top:10px;">🔄 Foana ny Kajy</button>
+
+    <div style="background:var(--input-bg); padding:15px; border-radius:25px; margin-top:20px; border:1.5px solid var(--primary);">
+        <label style="font-size:0.8rem; color:var(--text-sub); font-weight:600;">💵 Vola nentin'ny Mpanjifa</label>
+        <input type="number" id="kajy-vola-client" placeholder="Ampidiro ny vola nentiny..." oninput="calcKajyRendu()">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+            <span style="color:var(--text-sub); font-weight:600;">Famerimbola:</span>
+            <span id="kajy-rendu" style="font-size:1.3rem; font-weight:900; color:var(--success);">0 Ar</span>
+        </div>
+    </div>
+</div>
+
+<div class="nav-bar">
+    <button class="nav-item" onclick="showSec('sec-entana', this)"><i>📝</i><span>Entana</span></button>
+    <button class="nav-item active" onclick="showSec('sec-varotra', this)"><i>🛒</i><span>Varotra</span></button>
+    <button class="nav-item" onclick="showSec('sec-stock', this)"><i>📦</i><span>Stock</span></button>
+    <button class="nav-item" onclick="showSec('sec-kajy', this)"><i>💰</i><span>Kajy</span></button>
+    <button class="nav-item" onclick="showSec('sec-bilan', this)"><i>📊</i><span>Bilan</span></button>
+    <button class="nav-item" onclick="showSec('sec-admin', this)"><i>⚙️</i><span>Admin</span></button>
+</div>
+
+<div id="about-overlay" class="overlay">
+    <div class="modal-content">
+        <div id="setup-locked" style="text-align:center;">
+            <h2>Tsenako pro 2026</h2>
+            <p>Version d'essai</p>
+            <button class="btn-main" onclick="activateApp()">🔑 Ampiditra Lakile Premium</button>
+        </div>
+
+        <div id="setup-unlocked" style="display:none;">
+            <h3>⚙️ Fanamboarana Boutique</h3>
+            
+            <div style="text-align:center; margin-bottom:15px;">
+                <label for="cfg-logo">
+                    <img id="about-logo" src="" style="width:70px; height:70px; border-radius:15px; border:2px dashed var(--primary); object-fit:cover; cursor:pointer;">
+                    <p style="font-size:10px; color:var(--primary);">Kitiho ny sary hanovanao azy</p>
+                </label>
+                <input type="file" id="cfg-logo" style="display:none" accept="image/*" onchange="uploadLogo(this)">
+            </div>
+
+            <input type="text" id="cfg-name" placeholder="Anaran'ny Boutique">
+            <input type="text" id="cfg-nif" placeholder="Laharana NIF">
+            <input type="text" id="cfg-stat" placeholder="Laharana STAT">
+            <input type="password" id="cfg-pin" placeholder="PIN vaovao (4 chiffres)">
+            
+            <button class="btn-main" onclick="saveConfig()" style="background:var(--success);">💾 Tehirizina ny fanovana</button>
+        </div>
+        
+        <button class="btn-outline" onclick="closeApropos()" style="margin-top:10px;">Hakatona</button>
+        <p style="text-align:center; font-size:0.7rem; color:var(--text-sub); margin:14px 0 0 0;">©️ Tsenako Pro 2026 — Developed by T.Volasoa Bernard</p>
+    </div>
+</div>
+<div id="journal-overlay" class="overlay">
+    <div class="modal-content" style="width:90%; max-width:600px; max-height:85vh; overflow-y:auto;">
+        <h3>📔 Journal Épicerie Tendry</h3>
+        <div class="mode-switch">
+            <button id="j-tab-saisie" class="active" onclick="setJournalTab('saisie')">Androany</button>
+            <button id="j-tab-hist" onclick="setJournalTab('hist')">Historique</button>
+        </div>
+
+        <div id="j-panel-saisie">
+            <input type="date" id="j-date" onchange="loadRecetteForDate()">
+            <input type="number" id="j-recette" placeholder="Recette androany (Ar)" oninput="calcJournalPreview()">
+            <div style="background:var(--input-bg); padding:12px; border-radius:15px; border:1px solid var(--border); margin:8px 0; font-size:0.85rem;">
+                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Garde Caisse:</span><b id="j-garde-view">0</b></div>
+                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>Vola Niditra:</span><b id="j-niditra-view" style="color:var(--primary);">0</b></div>
+            </div>
+            <button class="btn-main" onclick="saveRecette()">💾 Tehirizina / Manova</button>
+
+            <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+            <details>
+                <summary class="btn-outline" style="text-align:center; display:block;">⚙️ Paramètre: Garde Caisse</summary>
+                <input type="number" id="j-garde-set" placeholder="Garde Caisse (Ar)" style="margin-top:8px;">
+                <button class="btn-outline" onclick="saveGardeCaisse()">Tehirizina Garde Caisse</button>
+            </details>
+        </div>
+
+        <div id="j-panel-hist" style="display:none;">
+            <select class="j-select" id="j-hist-mode" onchange="renderJournalHistory()" style="margin-bottom:10px;">
+                <option value="jour">📅 Isan'andro</option>
+                <option value="semaine">🗓️ Isaky herinandro</option>
+                <option value="quinzaine">✌️ Isaky 2 herinandro</option>
+                <option value="mois">📆 Isaky 4 herinandro (Mois)</option>
+                <option value="annee">🗂️ Isan-taona</option>
+            </select>
+            <div id="j-hist-table" style="overflow-x:auto; font-size:0.8rem;"></div>
+        </div>
+
+        <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
+        <button class="btn-main" onclick="exportRecetteJournalCSV()" style="background:#059669;">📥 Export Journal Épicerie Tendry</button>
+        <button class="btn-outline" onclick="resetAllData()" style="color:var(--danger); border-color:var(--danger); margin-top:8px;">🗑️ Réinitialiser daholo (Mila Mot de passe)</button>
+        <button class="btn-outline" onclick="closeJournal()" style="margin-top:10px;">Hakatona</button>
+    </div>
+</div>
+<div id="lock-screen"><h2>🔒 Tapitra ny fe-potoana</h2><button class="btn-main" onclick="openApropos()">Ampiditra Lakile</button></div>
+
+<script>
+    let catalog = JSON.parse(localStorage.getItem('tendry_catalog')) || [];
+    let stock = JSON.parse(localStorage.getItem('tendry_stock')) || [];
+    let ventes = JSON.parse(localStorage.getItem('tendry_ventes')) || [];
+    let dettes = JSON.parse(localStorage.getItem('tendry_dettes')) || [];
+    let config = JSON.parse(localStorage.getItem('tendry_config')) || { 
+        pin: "1234", active: false, name: "TENDRY EPICERIE",
+        trialStart: new Date().toISOString(), theme: 'light' 
+    };
+    if (config.gardeCaisse === undefined) config.gardeCaisse = 0;
+    let recettes = JSON.parse(localStorage.getItem('tendry_recettes')) || [];
+    let panier = [];
+    let cmdItems = [];
+    let vMode = 'detail';
+    let showPA = false;
+    let html5QrCode;
+    let profitChart;
+
+  function init() {
+    let logo = localStorage.getItem('tendry_logo') || "";
+    document.getElementById('main-logo').src = logo;
+    document.getElementById('about-logo').src = logo;
+    
+    // Mampiseho ny Anarana sy ny Renseignement (NIF/STAT)
+    document.getElementById('h-name').innerText = config.name;
+    
+    // Raha efa active ny Premium dia aseho ny NIF sy STAT
+    if(config.active) {
+        let nif = config.nif ? "NIF: " + config.nif : "";
+        let stat = config.stat ? " | STAT: " + config.stat : "";
+        document.getElementById('h-info-biz').innerText = nif + stat;
+    } else {
+        document.getElementById('h-info-biz').innerText = "Mitantana ny Varotrao";
+    }
+    
+    // Apply theme
+    document.documentElement.setAttribute('data-theme', config.theme);
+    document.getElementById('theme-btn').innerText = config.theme === 'dark' ? '☀️' : '🌙';
+
+    checkTrialStatus();
+    renderAll();
+    initChart();
+    renderKajyGrid();
+    renderKajyDetail();
+}
+
+    // --- DARK MODE ---
+    function toggleTheme() {
+        config.theme = config.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', config.theme);
+        document.getElementById('theme-btn').innerText = config.theme === 'dark' ? '☀️' : '🌙';
+        saveData();
+        if(profitChart) { 
+            profitChart.destroy();
+            initChart();
+        }
+    }
+
+    // --- CHART FUNCTIONS ---
+    function initChart() {
+        const ctx = document.getElementById('profitChart').getContext('2d');
+        const last7Days = [...Array(7)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            return d.toLocaleDateString('mg-MG', { weekday: 'short' });
+        }).reverse();
+
+        const profitData = [...Array(7)].map((_, i) => {
+            const d = new Date();
+            d.setDate(d.getDate() - (6 - i));
+            const dateStr = d.toDateString();
+            return ventes
+                .filter(v => new Date(v.date).toDateString() === dateStr)
+                .reduce((sum, v) => sum + v.profit, 0);
+        });
+
+        const isDark = config.theme === 'dark';
+        
+        profitChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: last7Days,
+                datasets: [{
+                    label: 'Tombony (Ar)',
+                    data: profitData,
+                    borderColor: '#6366f1',
+                    backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: isDark ? '#334155' : '#f1f5f9' },
+                        ticks: { color: isDark ? '#94a3b8' : '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: isDark ? '#94a3b8' : '#64748b' }
+                    }
+                }
+            }
+        });
+    }
+
+function startScanner(targetId) {
+    if (typeof Html5Qrcode === 'undefined') {
+        alert("❌ Tsy voapetraka tsara ny fitaovana Scanner (html5-qrcode.min.js). Avereno jerena ny rakitra.");
+        return;
+    }
+    document.getElementById('scanner-overlay').style.display = 'flex';
+    document.getElementById('scanner-hint').innerText = "Apetraho eo anatin'ny efijery ny Barcode/QR Code.";
+
+    // Raha efa nisy scanner nandeha dia ajanona aloha
+    if(html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode.clear(); executeCamera(targetId); }).catch(() => { executeCamera(targetId); });
+    } else {
+        executeCamera(targetId);
+    }
+}
+
+function onScanSuccess(targetId, decodedText) {
+    document.getElementById(targetId).value = decodedText;
+    if(targetId === 'p-entana') updatePosPreview();
+    if(targetId === 's-name') checkCatalogSelection(decodedText);
+    if(targetId === 'reg-code') { /* Famoronana Entana: aza atao na inona na inona fanampiny */ }
+    stopScanner();
+}
+
+function executeCamera(targetId) {
+    html5QrCode = new Html5Qrcode("reader");
+    const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+    html5QrCode.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => onScanSuccess(targetId, decodedText),
+        (errorMessage) => { }
+    ).catch(() => {
+        // Raha tsy misy camera "environment" (ohatra: PC na finday sasany), andramana ny camera hafa
+        html5QrCode.start(
+            { facingMode: "user" },
+            config,
+            (decodedText) => onScanSuccess(targetId, decodedText),
+            (errorMessage) => { }
+        ).catch(() => {
+            // Farany, andramana alaina ny lisitry ny camera manontolo
+            Html5Qrcode.getCameras().then(cameras => {
+                if (cameras && cameras.length) {
+                    html5QrCode.start(
+                        cameras[0].id,
+                        config,
+                        (decodedText) => onScanSuccess(targetId, decodedText),
+                        (errorMessage) => { }
+                    ).catch(err => {
+                        document.getElementById('scanner-hint').innerText = "⚠️ Tsy nety ny fidirana tao anaty camera: " + err;
+                    });
+                } else {
+                    document.getElementById('scanner-hint').innerText = "⚠️ Tsy nahita camera ny finday/solosaina.";
+                }
+            }).catch(err => {
+                document.getElementById('scanner-hint').innerText = "⚠️ Camera tsy azo ampiasaina: " + err + " (mba omeo alalana ny Camera amin'ny Paramètre-n'ny finday).";
+            });
+        });
+    });
+}
+    function stopScanner() {
+        document.getElementById('scanner-overlay').style.display = 'none';
+        if (html5QrCode) {
+            html5QrCode.stop().then(() => {
+                html5QrCode.clear();
+                html5QrCode = null;
+            }).catch(() => { html5QrCode = null; });
+        }
+    }
+
+    function checkTrialStatus() {
+        let start = new Date(config.trialStart);
+        let now = new Date();
+        let diffHours = (now - start) / (1000 * 60 * 60);
+        let diffDays = diffHours / 24;
+        if (!config.active) {
+            let banner = document.getElementById('trial-msg');
+            banner.style.display = 'block';
+            if (diffDays >= 1) {
+                document.getElementById('lock-screen').style.display = 'block';
+            } else {
+                let hoursLeft = Math.ceil(24 - diffHours);
+                banner.innerText = `⚠️ Version d'essai: ${hoursLeft} ora sisa`;
+            }
+            document.getElementById('main-header').style.top = '35px';
+        } else {
+            document.getElementById('trial-msg').style.display = 'none';
+            document.getElementById('main-header').style.top = '0';
+        }
+    }
+
+function registerProduct() {
+    let code = document.getElementById('reg-code').value.trim();
+    let name = document.getElementById('reg-name').value.trim();
+    let uG = document.getElementById('reg-unit-gros').value;
+    let uD = document.getElementById('reg-unit-det').value;
+    let conv = parseFloat(document.getElementById('reg-conv').value) || 1;
+
+    if(!name) return alert("Ampidiro ny anaran'ny entana!");
+
+    // Raha tsy misy code nampidirina, dia ny anarany ihany no atao code
+    let finalCode = code ? code : name;
+
+    catalog.push({ 
+        code: finalCode, // Nampiana "code" eto
+        name: name, 
+        uG: uG, 
+        uD: uD, 
+        conv: conv 
+    });
+
+    saveData(); 
+    renderCatalog(); 
+    updateLists();
+
+    // Diovina ny form
+    document.getElementById('reg-code').value = "";
+    document.getElementById('reg-name').value = "";
+    alert("✅ Voatahiry: " + name);
+}
+
+    function renderCatalog() {
+        document.getElementById('catalog-display').innerHTML = catalog.map((p, i) => `
+            <div style="padding:10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                <span><b>${p.name}</b> (${p.uG}/${p.uD})</span>
+                <button onclick="verifyPinAction(()=>{catalog.splice(${i},1);saveData();renderCatalog();updateLists();})" style="color:red;border:none;background:none;font-size:1.2rem;cursor:pointer;">🗑️</button>
+            </div>`).join('');
+    }
+
+    function setMode(m) { vMode = m; document.getElementById('v-det').classList.toggle('active', m==='detail'); document.getElementById('v-gros').classList.toggle('active', m==='gros'); updatePosPreview(); }
+    
+    function updatePosPreview() {
+        let name = document.getElementById('p-entana').value;
+        let qty = parseFloat(document.getElementById('p-qty').value) || 0;
+        let item = stock.find(s => s.name.toLowerCase() === name.toLowerCase());
+        if(item) {
+            document.getElementById('p-unit-view').innerText = vMode === 'gros' ? item.uGros : item.uDet;
+            let pu = vMode === 'gros' ? item.pvGros : item.pvDet;
+            document.getElementById('p-calc-view').innerText = `P.U: ${pu.toLocaleString()} Ar | Total: ${(pu*qty).toLocaleString()} Ar`;
+        }
+    }
+
+    function addToPanier() {
+        let name = document.getElementById('p-entana').value;
+        let qty = parseFloat(document.getElementById('p-qty').value) || 0;
+        let item = stock.find(s => s.name.toLowerCase() === name.toLowerCase());
+        if(!item || qty <= 0) return;
+        let pu = vMode === 'gros' ? item.pvGros : item.pvDet;
+        let qReal = vMode === 'gros' ? (qty * item.conv) : qty;
+        panier.push({ name: item.name, qty, unit: vMode==='gros'?item.uGros:item.uDet, total: pu*qty, qReal, profit: (pu*qty)-(item.pAchatDet*qReal) });
+        renderPanier();
+        document.getElementById('p-entana').value = ""; document.getElementById('p-qty').value = "";
+    }
+
+    function renderPanier() {
+        let h = ""; let t = 0;
+        panier.forEach((p, i) => { t+=p.total; h += `<tr><td>${p.name}</td><td>${p.qty} ${p.unit}</td><td>${p.total.toLocaleString()} Ar</td><td><button onclick="panier.splice(${i},1);renderPanier()" style="border:none;background:none;color:red;cursor:pointer;">✕</button></td></tr>`; });
+        document.getElementById('panier-body').innerHTML = h;
+        document.getElementById('p-final-total').innerText = t.toLocaleString() + " Ar";
+    }
+
+    function calcRendu() {
+        let t = parseFloat(document.getElementById('p-final-total').innerText.replace(/\s/g,'')) || 0;
+        let v = parseFloat(document.getElementById('p-vola').value) || 0;
+        document.getElementById('p-rendu-view').innerText = "Rendu: " + (v-t).toLocaleString() + " Ar";
+    }
+
+    function conclureVente(print) {
+        if(panier.length === 0) return;
+        if(print) { generateFacture(); return; }
+        panier.forEach(p => {
+            let s = stock.find(x => x.name === p.name);
+            if(s) s.qty -= p.qReal;
+            ventes.push({ date: new Date().toISOString(), item: p.name, qty: p.qty, total: p.total, profit: p.profit });
+        });
+        panier = []; renderPanier(); saveData(); renderAll();
+        if(profitChart) { profitChart.destroy(); initChart(); }
+        alert("✅ Vita ny varotra!");
+    }
+
+    function generateFacture() {
+        let client = document.getElementById('p-client').value || "Mpanjifa";
+        let date = new Date().toLocaleString();
+        let total = document.getElementById('p-final-total').innerText;
+        let html = `
+        <div style="padding:40px; background:white; font-family:sans-serif; color:black;">
+            <div style="text-align:center; border-bottom:2px solid #333; padding-bottom:10px; margin-bottom:20px;">
+                <h1 style="margin:0; letter-spacing:5px;">FACTURE</h1>
+                <p>${config.name} | Date: ${date}</p>
+            </div>
+            <div style="margin-bottom:20px;"><b>Client:</b> ${client}</div>
+            <table style="width:100%; border-collapse:collapse;">
+                <tr style="background:#eee;"><th style="padding:10px; border:1px solid #ddd; text-align:left;">Désignation</th><th style="padding:10px; border:1px solid #ddd;">Qté</th><th style="padding:10px; border:1px solid #ddd; text-align:right;">Total</th></tr>
+                ${panier.map(p => `<tr><td style="padding:10px; border:1px solid #ddd;">${p.name}</td><td style="padding:10px; border:1px solid #ddd; text-align:center;">${p.qty} ${p.unit}</td><td style="padding:10px; border:1px solid #ddd; text-align:right;">${p.total.toLocaleString()} Ar</td></tr>`).join('')}
+                <tr><td colspan="2" style="padding:10px; text-align:right;"><b>TOTAL TTC:</b></td><td style="padding:10px; text-align:right; font-size:1.2rem;"><b>${total}</b></td></tr>
+            </table>
+        </div>`;
+        let win = window.open('', '_blank');
+        win.document.write(`<html><body onload="window.print();window.close()">${html}</body></html>`);
+        win.document.close();
+        conclureVente(false);
+    }
+
+   function checkCatalogSelection(val) {
+    // Mitady amin'ny alalan'ny Code na Anarana
+    let p = catalog.find(x => x.code === val || x.name.toLowerCase() === val.toLowerCase());
+    
+    if(p) {
+        // Raha any amin'ny Stock no ampiasana azy
+        if(document.getElementById('s-name')) {
+            document.getElementById('s-name').value = p.name;
+            document.getElementById('s-unit-gros').value = p.uG;
+            document.getElementById('s-unit-det').value = p.uD;
+            document.getElementById('s-conv').value = p.conv;
+        }
+        
+        // Raha any amin'ny Varotra (POS) no ampiasana azy
+        if(document.getElementById('p-entana')) {
+            document.getElementById('p-entana').value = p.name;
+            updatePosPreview();
+        }
+
+        let sItem = stock.find(s => s.name.toLowerCase() === p.name.toLowerCase());
+        if(sItem && document.getElementById('s-info-auto')) {
+            document.getElementById('s-info-auto').innerText = `Vidin'ny gros farany: ${sItem.pAchatGros.toLocaleString()} Ar`;
+        }
+    }
+}
+    function calcStockPrice() {
+        let pg = parseFloat(document.getElementById('s-p-achat-gros').value) || 0;
+        let conv = parseFloat(document.getElementById('s-conv').value) || 1;
+        document.getElementById('s-calc-det-preview').innerText = `Vidin'ny détail: ${(pg/conv).toFixed(2)} Ar`;
+    }
+
+    function saveToStock() {
+        let name = document.getElementById('s-name').value.trim();
+        let qG = parseFloat(document.getElementById('s-qty-gros').value) || 0;
+        let conv = parseFloat(document.getElementById('s-conv').value) || 1;
+        let pAG = parseFloat(document.getElementById('s-p-achat-gros').value) || 0;
+        if(!name) return;
+        let idx = stock.findIndex(s => s.name.toLowerCase() === name.toLowerCase());
+        let item = {
+            name, qty: (idx > -1 ? stock[idx].qty : 0) + (qG * conv),
+            conv, uGros: document.getElementById('s-unit-gros').value, uDet: document.getElementById('s-unit-det').value,
+            pAchatGros: pAG, pAchatDet: pAG / conv,
+            pvDet: parseFloat(document.getElementById('s-pv-det').value) || 0,
+            pvGros: parseFloat(document.getElementById('s-pv-gros').value) || 0
+        };
+        if(idx > -1) stock[idx] = item; else stock.push(item);
+        saveData(); renderAll(); alert("✅ Stock voavao!");
+    }
+
+    function renderStock() {
+        let search = document.getElementById('s-search').value.toLowerCase();
+        document.getElementById('stock-display').innerHTML = stock.filter(s => s.name.toLowerCase().includes(search)).map((s, i) => `
+            <div style="background:var(--card-bg); padding:15px; border-radius:20px; margin-bottom:10px; border:1px solid var(--border); box-shadow:0 2px 5px rgba(0,0,0,0.05);">
+                <b>${s.name}</b><br>
+                <small style="color:var(--text-sub)">📦 ${Math.floor(s.qty/s.conv)} ${s.uGros} + ${Math.round(s.qty%s.conv)} ${s.uDet}</small><br>
+                <small style="color:var(--success)">PV: ${s.pvDet.toLocaleString()} Ar / ${s.pvGros.toLocaleString()} Ar</small>
+                ${showPA ? `<br><small style="color:var(--danger)">Achat: ${s.pAchatGros.toLocaleString()} Ar</small>` : ''}
+            </div>`).join('');
+    }
+
+    function addTrosa() {
+        let n = document.getElementById('t-name').value;
+        let v = parseFloat(document.getElementById('t-vola').value);
+        if(!n || !v) return;
+        dettes.push({ name: n, vola: v, date: new Date().toLocaleDateString() });
+        saveData(); renderAll();
+        document.getElementById('t-name').value = ""; document.getElementById('t-vola').value = "";
+    }
+
+    function renderTrosa() {
+        document.getElementById('trosa-display').innerHTML = dettes.map((d, i) => `
+            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border);">
+                <span>${d.name} (${d.date})</span>
+                <b>${d.vola.toLocaleString()} Ar <button onclick="dettes.splice(${i},1);saveData();renderAll();" style="border:none;background:none;color:red;cursor:pointer;">✕</button></b>
+            </div>`).join('');
+    }
+
+    function addCmdItem() {
+        let itm = document.getElementById('c-item-name').value;
+        let qty = document.getElementById('c-qty').value;
+        let unit = document.getElementById('c-unit').value;
+        if(!itm || !qty) return;
+        cmdItems.push(`${itm}: ${qty} ${unit}`);
+        renderCmdList();
+        document.getElementById('c-item-name').value = ""; document.getElementById('c-qty').value = "";
+    }
+
+    function renderCmdList() {
+        document.getElementById('cmd-list-preview').innerHTML = cmdItems.map((c, i) => `
+            <div style="padding:5px; background:var(--input-bg); margin:2px; border-radius:10px; border:1px solid var(--border); display:inline-block;">
+                ${c} <button onclick="cmdItems.splice(${i},1);renderCmdList()" style="border:none;background:none;color:red;cursor:pointer;">x</button>
+            </div>`).join('');
+    }
+
+    function sendFinalCmd(type) {
+        let phone = document.getElementById('c-phone').value;
+        let txt = "COMMANDE TENDRY:\n" + cmdItems.join('\n');
+        if(type === 'wa') window.open(`https://wa.me/${phone}?text=${encodeURIComponent(txt)}`);
+        else window.location.href = `sms:${phone}?body=${encodeURIComponent(txt)}`;
+    }
+
+    function exportJournalCSV() {
+        let csv = "\uFEFFDaty,Entana,Total,Tombony\n";
+        ventes.forEach(v => csv += `${new Date(v.date).toLocaleString()},${v.item},${v.total},${v.profit}\n`);
+        let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a"); link.href = url; link.download = "Journal.csv"; link.click();
+    }
+
+    function showSec(id, btn) {
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+        if(html5QrCode) stopScanner();
+        document.getElementById('scanner-overlay').style.display = 'none';
+    }
+
+    function verifyPinAction(callback) {
+        if (!config.active) { alert("❌ Version Premium ihany no afaka manao an'io!"); return; }
+        let p = prompt("PIN:"); if(p === config.pin) callback(); else if(p) alert("PIN diso!");
+    }
+
+    function updateLists() {
+        let opts = catalog.map(p => `<option value="${p.name}">`).join('');
+        document.getElementById('catalog-list').innerHTML = opts;
+        document.getElementById('stock-list-pos').innerHTML = stock.map(s => `<option value="${s.name}">`).join('');
+    }
+
+    function renderAll() {
+        let pToday = ventes.filter(v => new Date(v.date).toDateString() === new Date().toDateString()).reduce((a,b)=>a+b.profit, 0);
+        document.getElementById('b-profit').innerText = Math.round(pToday).toLocaleString() + " Ar";
+        document.getElementById('b-trosa').innerText = dettes.reduce((a,b)=>a+b.vola, 0).toLocaleString() + " Ar";
+        document.getElementById('b-valeur').innerText = stock.reduce((a,b)=>a+(b.qty*b.pAchatDet), 0).toLocaleString() + " Ar";
+        renderStock(); renderCatalog(); renderTrosa(); updateLists();
+    }
+
+// Function fampidirana lakile
+function activateApp() {
+    let key = prompt("Ampidiro ny lakile Premium:");
+    if(key === "TENDRY2026") {
+        config.active = true;
+        saveData();
+        openApropos(); // Havaozina ny fahitana ny modaly
+        alert("✅ Premium Active! Azonao fenoina izao ny mombamomba ny Boutique-nao.");
+    } else {
+        alert("❌ Lakile diso!");
+    }
+}
+
+    function uploadLogo(input) {
+        if (input.files && input.files[0]) {
+            let reader = new FileReader();
+            reader.onload = e => { localStorage.setItem('tendry_logo', e.target.result); location.reload(); };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    function changePIN() { let p = prompt("New PIN:"); if(p) { config.pin = p; saveData(); } }
+    function saveData() { 
+        localStorage.setItem('tendry_catalog', JSON.stringify(catalog)); 
+        localStorage.setItem('tendry_stock', JSON.stringify(stock)); 
+        localStorage.setItem('tendry_ventes', JSON.stringify(ventes)); 
+        localStorage.setItem('tendry_dettes', JSON.stringify(dettes)); 
+        localStorage.setItem('tendry_config', JSON.stringify(config)); 
+        localStorage.setItem('tendry_recettes', JSON.stringify(recettes)); 
+    }
+
+    // ============ FITAHIRIZANA RAKITRA (SAVE) - EpicerieBackup ============
+    // Mampiasa ny File System Access API raha misy (mamela misafidy toerana na mitahiry
+    // mivantana ao anaty dossier "EpicerieBackup"), fa raha tsia dia miverina amin'ny
+    // téléchargement mahazatra (Downloads).
+    const FSA_SUPPORTED = (typeof window.showDirectoryPicker === 'function') && (typeof window.showSaveFilePicker === 'function');
+    // Marika raha ao anaty application native (APK/Capacitor) izao fandehanana izao
+    const IS_NATIVE_APP = !!(window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform());
+
+    // Fitahirizana amin'ny alalan'ny Capacitor Filesystem plugin (mandeha ao anaty APK).
+    // Mila ny plugin @capacitor/filesystem (ary azo atao koa @capacitor/share) voapetraka ao amin'ny projet.
+    async function saveFileCapacitor(filename, content) {
+        try {
+            if(!window.Capacitor.Plugins || !window.Capacitor.Plugins.Filesystem) {
+                alert("⚠️ Tsy voapetraka ny plugin @capacitor/filesystem. Ampio: npm install @capacitor/filesystem && npx cap sync android");
+                downloadFallback(filename, content, 'text/plain;charset=utf-8;');
+                return;
+            }
+            const { Filesystem } = window.Capacitor.Plugins;
+            let auto = confirm("💾 Hitahiry ny rakitra:\n\nOK = Mitahiry mivantana ao anaty dossier « EpicerieBackup »\nAnnuler = Mizara / Misafidy toerana hafa (Partager)");
+            if(auto) {
+                await Filesystem.mkdir({ path: 'EpicerieBackup', directory: 'EXTERNAL_STORAGE', recursive: true }).catch(()=>{});
+                await Filesystem.writeFile({ path: 'EpicerieBackup/' + filename, data: content, directory: 'EXTERNAL_STORAGE', encoding: 'utf8', recursive: true });
+                alert("✅ Voatahiry tao anaty Android/data/.../files/EpicerieBackup:\n" + filename);
+            } else {
+                const tmp = await Filesystem.writeFile({ path: filename, data: content, directory: 'CACHE', encoding: 'utf8' });
+                if(window.Capacitor.Plugins.Share) {
+                    await window.Capacitor.Plugins.Share.share({ title: filename, url: tmp.uri });
+                } else {
+                    alert("✅ Voatahiry: " + tmp.uri);
+                }
+            }
+        } catch(e) {
+            alert("⚠️ Tsy nety ny fitahirizana: " + (e && e.message ? e.message : e));
+        }
+    }
+
+    function openHandleDB() {
+        return new Promise((resolve, reject) => {
+            let req = indexedDB.open('tendry_fs_handles_db', 1);
+            req.onupgradeneeded = () => { if(!req.result.objectStoreNames.contains('handles')) req.result.createObjectStore('handles'); };
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+    async function idbGetHandle(key) {
+        try {
+            const db = await openHandleDB();
+            return await new Promise((resolve) => {
+                const tx = db.transaction('handles', 'readonly');
+                const rq = tx.objectStore('handles').get(key);
+                rq.onsuccess = () => resolve(rq.result || null);
+                rq.onerror = () => resolve(null);
+            });
+        } catch(e) { return null; }
+    }
+    async function idbSetHandle(key, val) {
+        try {
+            const db = await openHandleDB();
+            return await new Promise((resolve) => {
+                const tx = db.transaction('handles', 'readwrite');
+                tx.objectStore('handles').put(val, key);
+                tx.oncomplete = () => resolve(true);
+                tx.onerror = () => resolve(false);
+            });
+        } catch(e) { return false; }
+    }
+
+    // Mahazo (na mamorona) ilay dossier "EpicerieBackup" ao anaty Storage interne, ary tahirizina
+    // ao anaty IndexedDB ilay "handle" mba tsy hangatahana isaky ny export intsony.
+    async function getEpicerieBackupDir() {
+        if(!FSA_SUPPORTED) return null;
+        try {
+            let handle = await idbGetHandle('epicerieBackupDir');
+            if(handle) {
+                const opts = { mode: 'readwrite' };
+                let perm = await handle.queryPermission(opts);
+                if(perm !== 'granted') perm = await handle.requestPermission(opts);
+                if(perm === 'granted') return handle;
+            }
+            let dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+            // Raha mbola tsy "EpicerieBackup" no anarany, mamorona/misafidy sub-dossier mitondra izany anarana izany
+            let finalHandle = dirHandle;
+            if(dirHandle.name !== 'EpicerieBackup') {
+                try { finalHandle = await dirHandle.getDirectoryHandle('EpicerieBackup', { create: true }); } catch(e) { finalHandle = dirHandle; }
+            }
+            await idbSetHandle('epicerieBackupDir', finalHandle);
+            return finalHandle;
+        } catch(e) {
+            return null;
+        }
+    }
+
+    function downloadFallback(filename, content, mimeType) {
+        let blob = new Blob([content], { type: mimeType });
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a"); link.href = url; link.download = filename; link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async function saveWithPicker(filename, content, mimeType) {
+        try {
+            const ext = filename.includes('.') ? '.' + filename.split('.').pop() : '';
+            const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Fichier', accept: { [mimeType]: [ext] } }] });
+            const writable = await handle.createWritable();
+            await writable.write(new Blob([content], { type: mimeType }));
+            await writable.close();
+            alert("✅ Voatahiry: " + filename);
+            return true;
+        } catch(e) {
+            if(e && e.name === 'AbortError') return true; // nofoanan'ny mpampiasa, tsy hoe hadisoana
+            return false;
+        }
+    }
+
+    // Fonction ivelany: misafidy toerana (Annuler) na mitahiry mivantana ao amin'ny EpicerieBackup (OK)
+    async function saveFileSmart(filename, content, mimeType) {
+        if(IS_NATIVE_APP) { await saveFileCapacitor(filename, content); return; }
+        if(!FSA_SUPPORTED) { downloadFallback(filename, content, mimeType); return; }
+        let auto = confirm("💾 Hitahiry ny rakitra:\n\nOK = Mitahiry mivantana ao anaty dossier « EpicerieBackup »\nAnnuler = Misafidy toerana hafa hitahirizana azy");
+        if(auto) {
+            let dir = await getEpicerieBackupDir();
+            if(dir) {
+                try {
+                    const fileHandle = await dir.getFileHandle(filename, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(new Blob([content], { type: mimeType }));
+                    await writable.close();
+                    alert("✅ Voatahiry tao anaty EpicerieBackup: " + filename);
+                    return;
+                } catch(e) { /* miverina any amin'ny picker manaraka */ }
+            }
+            const ok = await saveWithPicker(filename, content, mimeType);
+            if(!ok) downloadFallback(filename, content, mimeType);
+        } else {
+            const ok = await saveWithPicker(filename, content, mimeType);
+            if(!ok) downloadFallback(filename, content, mimeType);
+        }
+    }
+
+    // ============ BACKUP TANTERAKA NY APPLICATION ============
+    function exportFullBackup() {
+        let backupObj = {
+            type: 'TENDRY_FULL_BACKUP', version: 1, exportDate: new Date().toISOString(),
+            data: {
+                tendry_catalog: catalog, tendry_stock: stock, tendry_ventes: ventes,
+                tendry_dettes: dettes, tendry_config: config, tendry_recettes: recettes,
+                tendry_logo: localStorage.getItem('tendry_logo') || ""
+            }
+        };
+        let json = JSON.stringify(backupObj, null, 2);
+        let filename = "EpicerieTendry_Backup_" + new Date().toISOString().slice(0,10) + ".json";
+        saveFileSmart(filename, json, "application/json;charset=utf-8;");
+    }
+
+    function triggerImportBackup() { document.getElementById('backup-file-input').click(); }
+
+    function importFullBackup(input) {
+        if(!input.files || !input.files[0]) return;
+        if(!confirm("⚠️ Hosoloana daholo ny angona ankehitriny (Entana, Stock, Varotra, Trosa, Recette, Paramètre) amin'ny angona ao anaty backup voafidy. Tsy azo averina intsony izao fihetsika izao. Tohizana?")) { input.value=''; return; }
+        let reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                let obj = JSON.parse(e.target.result);
+                if(!obj || obj.type !== 'TENDRY_FULL_BACKUP' || !obj.data) { alert("❌ Rakitra backup tsy mety."); return; }
+                let d = obj.data;
+                localStorage.setItem('tendry_catalog', JSON.stringify(d.tendry_catalog || []));
+                localStorage.setItem('tendry_stock', JSON.stringify(d.tendry_stock || []));
+                localStorage.setItem('tendry_ventes', JSON.stringify(d.tendry_ventes || []));
+                localStorage.setItem('tendry_dettes', JSON.stringify(d.tendry_dettes || []));
+                localStorage.setItem('tendry_config', JSON.stringify(d.tendry_config || {}));
+                localStorage.setItem('tendry_recettes', JSON.stringify(d.tendry_recettes || []));
+                if(d.tendry_logo) localStorage.setItem('tendry_logo', d.tendry_logo);
+                alert("✅ Backup voaverina soa aman-tsara! Havaozina ny application...");
+                location.reload();
+            } catch(err) {
+                alert("❌ Tsy voavaky ny rakitra: " + err.message);
+            }
+        };
+        reader.readAsText(input.files[0]);
+        input.value = '';
+    }
+
+    // ============ KAJY VOLA (CALCULATRICE DE MONNAIE) ============
+    const kajyDenoms = [5,10,20,50,100,200,500,1000,2000,5000,10000,20000];
+    let kajyCounts = {}; kajyDenoms.forEach(d => kajyCounts[d] = 0);
+
+    function renderKajyGrid() {
+        document.getElementById('kajy-grid').innerHTML = kajyDenoms.map(d => `
+            <button class="kajy-btn" onclick="addKajy(${d})">
+                <span class="kajy-btn-val">${d.toLocaleString()}</span>
+                <span class="kajy-btn-ar">Ar</span>
+            </button>`).join('');
+    }
+
+    function addKajy(d) { kajyCounts[d]++; renderKajyDetail(); }
+    function minusKajy(d) { if(kajyCounts[d] > 0) kajyCounts[d]--; renderKajyDetail(); }
+
+    function renderKajyDetail() {
+        let total = 0;
+        let rows = kajyDenoms.filter(d => kajyCounts[d] > 0).map(d => {
+            let sub = d * kajyCounts[d];
+            total += sub;
+            return `<tr>
+                <td>${d.toLocaleString()} Ar</td>
+                <td style="text-align:center;">
+                    <button class="kajy-mini-btn" onclick="minusKajy(${d})">-</button>
+                    <b style="margin:0 10px;">${kajyCounts[d]}</b>
+                    <button class="kajy-mini-btn" onclick="addKajy(${d})">+</button>
+                </td>
+                <td style="text-align:right;">${sub.toLocaleString()} Ar</td>
+            </tr>`;
+        }).join('');
+        document.getElementById('kajy-detail').innerHTML = rows
+            ? `<table class="table-res"><thead><tr><th>Vidiny</th><th style="text-align:center;">Isany</th><th style="text-align:right;">S/Total</th></tr></thead><tbody>${rows}</tbody></table>`
+            : '<p style="text-align:center; color:var(--text-sub); font-size:0.85rem;">Kitiho ny vola eo ambony hanombohana ny kajy.</p>';
+        document.getElementById('kajy-total').innerText = total.toLocaleString() + " Ar";
+        calcKajyRendu();
+    }
+
+    function resetKajy() {
+        kajyDenoms.forEach(d => kajyCounts[d] = 0);
+        document.getElementById('kajy-vola-client').value = "";
+        renderKajyDetail();
+    }
+
+    function calcKajyRendu() {
+        let total = kajyDenoms.reduce((a,d) => a + d*kajyCounts[d], 0);
+        let client = parseFloat(document.getElementById('kajy-vola-client').value) || 0;
+        let rendu = client - total;
+        let el = document.getElementById('kajy-rendu');
+        el.innerText = rendu.toLocaleString() + " Ar";
+        el.style.color = rendu < 0 ? 'var(--danger)' : 'var(--success)';
+    }
+
+    // ============ JOURNAL: RECETTE / VOLA NIDITRA / HISTORIQUE ============
+    function openJournal() {
+        document.getElementById('journal-overlay').style.display = 'flex';
+        document.getElementById('j-date').value = new Date().toISOString().slice(0,10);
+        document.getElementById('j-garde-set').value = config.gardeCaisse || 0;
+        setJournalTab('saisie');
+        loadRecetteForDate();
+    }
+    function closeJournal() { document.getElementById('journal-overlay').style.display = 'none'; }
+
+    function setJournalTab(tab) {
+        document.getElementById('j-tab-saisie').classList.toggle('active', tab === 'saisie');
+        document.getElementById('j-tab-hist').classList.toggle('active', tab === 'hist');
+        document.getElementById('j-panel-saisie').style.display = tab === 'saisie' ? 'block' : 'none';
+        document.getElementById('j-panel-hist').style.display = tab === 'hist' ? 'block' : 'none';
+        if(tab === 'hist') renderJournalHistory();
+    }
+
+    function loadRecetteForDate() {
+        let date = document.getElementById('j-date').value;
+        let existing = recettes.find(r => r.date === date);
+        document.getElementById('j-recette').value = existing ? existing.recette : "";
+        calcJournalPreview();
+    }
+
+    function calcJournalPreview() {
+        let recette = parseFloat(document.getElementById('j-recette').value) || 0;
+        let garde = config.gardeCaisse || 0;
+        document.getElementById('j-garde-view').innerText = garde.toLocaleString() + " Ar";
+        document.getElementById('j-niditra-view').innerText = (recette - garde).toLocaleString() + " Ar";
+    }
+
+    function saveGardeCaisse() {
+        let v = parseFloat(document.getElementById('j-garde-set').value) || 0;
+        config.gardeCaisse = v;
+        saveData();
+        calcJournalPreview();
+        alert("✅ Voatahiry ny Garde Caisse: " + v.toLocaleString() + " Ar");
+    }
+
+    function saveRecette() {
+        let date = document.getElementById('j-date').value;
+        let recette = parseFloat(document.getElementById('j-recette').value) || 0;
+        if(!date) return alert("Safidio aloha ny daty!");
+        let garde = config.gardeCaisse || 0;
+        let volaNiditra = recette - garde;
+        let idx = recettes.findIndex(r => r.date === date);
+        let entry = { date, recette, gardeCaisse: garde, volaNiditra };
+        if(idx > -1) recettes[idx] = entry; else recettes.push(entry);
+        recettes.sort((a,b) => a.date.localeCompare(b.date));
+        saveData();
+        alert("✅ Voatahiry ny Recette amin'ny " + date + "!");
+    }
+
+    // --- Regroupements semaine (Alahady->Sabotsy) / quinzaine / 4-semaines / année ---
+    const WEEK_EPOCH = new Date(2000, 0, 2); // Alahady iray natao référence
+    function getWeekStart(d) {
+        let date = new Date(d); date.setHours(0,0,0,0);
+        date.setDate(date.getDate() - date.getDay());
+        return date;
+    }
+    function getWeekIndex(weekStart) { return Math.round((weekStart - WEEK_EPOCH) / (7*86400000)); }
+    function fmtD(d) { return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+
+    function buildWeeklyData() {
+        let groups = {};
+        recettes.forEach(r => {
+            let ws = getWeekStart(new Date(r.date + 'T00:00:00'));
+            let key = ws.toISOString().slice(0,10);
+            if(!groups[key]) groups[key] = { weekStart: ws, total: 0 };
+            groups[key].total += r.volaNiditra;
+        });
+        let weeks = Object.values(groups).map(g => {
+            let idx = getWeekIndex(g.weekStart);
+            let epargne = 40000;
+            let tombony = g.total / 6;
+            let volaMiverina = g.total - (tombony + epargne);
+            let weekEnd = new Date(g.weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+            return { weekStart: g.weekStart, weekEnd, idx, total: g.total, epargne, tombony, volaMiverina };
+        });
+        weeks.sort((a,b) => a.idx - b.idx);
+        return weeks;
+    }
+
+    function buildBiweeklyData() {
+        let weeks = buildWeeklyData();
+        let groups = {};
+        weeks.forEach(w => {
+            let pairIdx = Math.floor(w.idx / 2);
+            if(!groups[pairIdx]) groups[pairIdx] = { pairIdx, weeks: [], total: 0, tombony: 0 };
+            groups[pairIdx].weeks.push(w);
+            groups[pairIdx].total += w.total;
+            groups[pairIdx].tombony += w.tombony;
+        });
+        let arr = Object.values(groups).map(g => ({ ...g,
+            start: g.weeks[0].weekStart, end: g.weeks[g.weeks.length-1].weekEnd,
+            reserve10: g.tombony * 0.10 }));
+        arr.sort((a,b) => a.pairIdx - b.pairIdx);
+        return arr;
+    }
+
+    function buildMonthlyData() {
+        let weeks = buildWeeklyData();
+        let groups = {};
+        weeks.forEach(w => {
+            let quadIdx = Math.floor(w.idx / 4);
+            if(!groups[quadIdx]) groups[quadIdx] = { quadIdx, weeks: [], total: 0, tombony: 0, epargne: 0 };
+            groups[quadIdx].weeks.push(w);
+            groups[quadIdx].total += w.total;
+            groups[quadIdx].tombony += w.tombony;
+            groups[quadIdx].epargne += w.epargne;
+        });
+        let arr = Object.values(groups).map(g => ({ ...g,
+            start: g.weeks[0].weekStart, end: g.weeks[g.weeks.length-1].weekEnd,
+            reserve10: g.tombony * 0.10 }));
+        arr.sort((a,b) => a.quadIdx - b.quadIdx);
+        return arr;
+    }
+
+    function buildYearlyData() {
+        let groups = {};
+        recettes.forEach(r => {
+            let year = r.date.slice(0,4);
+            if(!groups[year]) groups[year] = { year, totalRecette: 0, totalNiditra: 0, tombony: 0, epargne: 0 };
+            groups[year].totalRecette += r.recette;
+            groups[year].totalNiditra += r.volaNiditra;
+        });
+        buildWeeklyData().forEach(w => {
+            let year = w.weekStart.getFullYear().toString();
+            if(!groups[year]) groups[year] = { year, totalRecette: 0, totalNiditra: 0, tombony: 0, epargne: 0 };
+            groups[year].tombony += w.tombony;
+            groups[year].epargne += w.epargne;
+        });
+        return Object.values(groups).sort((a,b) => a.year.localeCompare(b.year));
+    }
+
+    function renderJournalHistory() {
+        let mode = document.getElementById('j-hist-mode').value;
+        let html = '';
+        if(mode === 'jour') {
+            let rows = [...recettes].sort((a,b) => b.date.localeCompare(a.date));
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Daty</th><th>Recette</th><th>Garde</th><th>V.Niditra</th></tr></thead><tbody>` +
+                rows.map(r => `<tr><td>${r.date}</td><td>${r.recette.toLocaleString()}</td><td>${r.gardeCaisse.toLocaleString()}</td><td><b>${r.volaNiditra.toLocaleString()}</b></td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'semaine') {
+            let rows = buildWeeklyData().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Herinandro</th><th>V.Niditra</th><th>Epargne</th><th>Tombony</th><th>V.Miverina</th></tr></thead><tbody>` +
+                rows.map(w => `<tr><td>${fmtD(w.weekStart)}<br>${fmtD(w.weekEnd)}</td><td>${Math.round(w.total).toLocaleString()}</td><td>${w.epargne.toLocaleString()}</td><td>${Math.round(w.tombony).toLocaleString()}</td><td>${Math.round(w.volaMiverina).toLocaleString()}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'quinzaine') {
+            let rows = buildBiweeklyData().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Vanim-potoana</th><th>Total V.Niditra</th><th>Total Tombony</th><th>10% Tombony</th></tr></thead><tbody>` +
+                rows.map(g => `<tr><td>${fmtD(g.start)}<br>${fmtD(g.end)}</td><td>${Math.round(g.total).toLocaleString()}</td><td>${Math.round(g.tombony).toLocaleString()}</td><td>${Math.round(g.reserve10).toLocaleString()}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'mois') {
+            let rows = buildMonthlyData().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Vanim-potoana (4 herin.)</th><th>Total V.Niditra</th><th>Total Tombony</th><th>Total Epargne</th><th>10% Tombony</th></tr></thead><tbody>` +
+                rows.map(g => `<tr><td>${fmtD(g.start)}<br>${fmtD(g.end)}</td><td>${Math.round(g.total).toLocaleString()}</td><td>${Math.round(g.tombony).toLocaleString()}</td><td>${g.epargne.toLocaleString()}</td><td>${Math.round(g.reserve10).toLocaleString()}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'annee') {
+            let rows = buildYearlyData().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Taona</th><th>Recette</th><th>V.Niditra</th><th>Tombony</th><th>Epargne</th></tr></thead><tbody>` +
+                rows.map(g => `<tr><td>${g.year}</td><td>${Math.round(g.totalRecette).toLocaleString()}</td><td>${Math.round(g.totalNiditra).toLocaleString()}</td><td>${Math.round(g.tombony).toLocaleString()}</td><td>${g.epargne.toLocaleString()}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        }
+        document.getElementById('j-hist-table').innerHTML = html || '<p style="text-align:center; color:var(--text-sub); padding:15px 0;">Mbola tsy misy angona.</p>';
+    }
+
+    function exportRecetteJournalCSV() {
+        let csv = "\uFEFFJOURNAL EPICERIE TENDRY\n\n--- ISAN'ANDRO ---\nDaty,Recette,Garde Caisse,Vola Niditra\n";
+        [...recettes].sort((a,b) => a.date.localeCompare(b.date)).forEach(r => csv += `${r.date},${r.recette},${r.gardeCaisse},${r.volaNiditra}\n`);
+        csv += "\n--- ISAKY HERINANDRO ---\nHerinandro Manomboka,Herinandro Mifarana,Vola Niditra,Epargne,Tombony,Vola Miverina Mihodina\n";
+        buildWeeklyData().forEach(w => csv += `${fmtD(w.weekStart)},${fmtD(w.weekEnd)},${Math.round(w.total)},${w.epargne},${Math.round(w.tombony)},${Math.round(w.volaMiverina)}\n`);
+        csv += "\n--- ISAKY 2 HERINANDRO ---\nManomboka,Mifarana,Total V.Niditra,Total Tombony,10% Tombony\n";
+        buildBiweeklyData().forEach(g => csv += `${fmtD(g.start)},${fmtD(g.end)},${Math.round(g.total)},${Math.round(g.tombony)},${Math.round(g.reserve10)}\n`);
+        csv += "\n--- ISAKY 4 HERINANDRO (MOIS) ---\nManomboka,Mifarana,Total V.Niditra,Total Tombony,Total Epargne,10% Tombony\n";
+        buildMonthlyData().forEach(g => csv += `${fmtD(g.start)},${fmtD(g.end)},${Math.round(g.total)},${Math.round(g.tombony)},${g.epargne},${Math.round(g.reserve10)}\n`);
+        csv += "\n--- ISAN-TAONA ---\nTaona,Recette,V.Niditra,Tombony,Epargne\n";
+        buildYearlyData().forEach(g => csv += `${g.year},${Math.round(g.totalRecette)},${Math.round(g.totalNiditra)},${Math.round(g.tombony)},${g.epargne}\n`);
+
+        let filename = "Journal_Epicerie_Tendry_" + new Date().toISOString().slice(0,10) + ".csv";
+        saveFileSmart(filename, csv, "text/csv;charset=utf-8;");
+    }
+
+    function resetAllData() {
+        let p = prompt("🔒 Ampidiro ny Mot de passe (PIN) mba hanadiovana ny angona rehetra:");
+        if(p === null) return;
+        if(p !== config.pin) return alert("❌ Mot de passe diso!");
+        if(!confirm("⚠️ Hofoanana TANTERAKA ny angona rehetra (Stock, Varotra, Trosa, Recette...). Tsy azo averina intsony izao fihetsika izao. Tohizana?")) return;
+        localStorage.removeItem('tendry_catalog');
+        localStorage.removeItem('tendry_stock');
+        localStorage.removeItem('tendry_ventes');
+        localStorage.removeItem('tendry_dettes');
+        localStorage.removeItem('tendry_recettes');
+        let keepConfig = { pin: config.pin, active: config.active, name: config.name, nif: config.nif, stat: config.stat, trialStart: config.trialStart, theme: config.theme, gardeCaisse: 0 };
+        localStorage.setItem('tendry_config', JSON.stringify(keepConfig));
+        alert("✅ Voafoana daholo ny angona.");
+        location.reload();
+    }
+    function togglePA() { showPA = !showPA; renderStock(); }
+    function toggleExtraDetail() { let box = document.getElementById('extra-detail-box'); box.style.display = box.style.display === 'block' ? 'none' : 'block'; }
+ // Function manokatra ny Apropos
+function openApropos() {
+    document.getElementById('about-overlay').style.display = 'flex';
+    
+    // Jerena raha efa active ny Premium
+    if(config.active) {
+        // Raha efa active: aseho ny réglages, afenina ny bokotra fampidirana lakile
+        document.getElementById('setup-locked').style.display = 'none';
+        document.getElementById('setup-unlocked').style.display = 'block';
+        
+        // Fenoina mialoha ny anarana sy NIF raha efa misy
+        document.getElementById('cfg-name').value = config.name || "";
+        document.getElementById('cfg-nif').value = config.nif || "";
+        document.getElementById('cfg-stat').value = config.stat || "";
+    } else {
+        // Raha mbola essai: ny bokotra "Activez" ihany no hita
+        document.getElementById('setup-locked').style.display = 'block';
+        document.getElementById('setup-unlocked').style.display = 'none';
+    }
+}
+
+// Function fampidirana lakile
+function activateApp() {
+    let key = prompt("Ampidiro ny lakile Premium:");
+    if(key === "TENDRY2026") {
+        config.active = true;
+        saveData();
+        openApropos(); // Havaozina ny fahitana ny modaly
+        alert("✅ Premium Active! Azonao fenoina izao ny mombamomba ny Boutique-nao.");
+    } else {
+        alert("❌ Lakile diso!");
+    }
+}
+
+// Function itahirizana ny renseignement rehetra
+function saveConfig() {
+    config.name = document.getElementById('cfg-name').value || config.name;
+    config.nif = document.getElementById('cfg-nif').value;
+    config.stat = document.getElementById('cfg-stat').value;
+    let newPin = document.getElementById('cfg-pin').value;
+    
+    if(newPin) config.pin = newPin;
+    
+    saveData();
+    alert("✅ Voatahiry ny mombamomba ny Boutique!");
+    location.reload(); // Havaozina ny pejy mba hiseho ny sary sy anarana vaovao
+}
+    function closeApropos() { document.getElementById('about-overlay').style.display = 'none'; }
+
+        // Fampandehanana ny Service Worker (sw.js)
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    window.onload = init;
+</script>
+</body>
+</html>
