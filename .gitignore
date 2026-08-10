@@ -1,0 +1,7 @@
+node_modules/
+android/
+www/icons/*.png
+*.keystore
+*.jks
+keystore-base64.txt
+.DS_Store
