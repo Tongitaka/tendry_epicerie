@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tendry-v4';
+const CACHE_NAME = 'tendry-v5';
 const ASSETS = [
   './',
   './index.html',
