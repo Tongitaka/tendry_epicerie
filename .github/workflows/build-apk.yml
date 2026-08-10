@@ -35,6 +35,8 @@ jobs:
 
       - name: Generate PWA icons (www/icons)
         run: |
+          sudo apt-get update -y
+          sudo apt-get install -y imagemagick
           mkdir -p www/icons
           SRC="resources/icon.png"
           if [ ! -f "$SRC" ]; then SRC="resources/icon-only.png"; fi
@@ -94,6 +96,8 @@ jobs:
 
       - name: Generate PWA icons (www/icons)
         run: |
+          sudo apt-get update -y
+          sudo apt-get install -y imagemagick
           mkdir -p www/icons
           SRC="resources/icon.png"
           if [ ! -f "$SRC" ]; then SRC="resources/icon-only.png"; fi
