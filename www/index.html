@@ -456,6 +456,7 @@
         <div class="mode-switch">
             <button id="j-tab-saisie" class="active" onclick="setJournalTab('saisie')">Androany</button>
             <button id="j-tab-hist" onclick="setJournalTab('hist')">Historique</button>
+            <button id="j-tab-stock" onclick="setJournalTab('stock')">📦 Varotra&Stock</button>
         </div>
 
         <div id="j-panel-saisie">
@@ -486,6 +487,20 @@
             <div id="j-hist-table" style="overflow-x:auto; font-size:0.8rem;"></div>
         </div>
 
+        <div id="j-panel-stock" style="display:none;">
+            <p style="font-size:0.75rem; color:var(--text-sub); text-align:center; margin:0 0 8px 0;">
+                Journal feno: Varotra (sorties) + Fidirana Stock (entrées) — Tombony/Fatiantoka.
+            </p>
+            <select class="j-select" id="j-stock-mode" onchange="renderStockJournal()" style="margin-bottom:10px;">
+                <option value="jour">📅 Isan'andro</option>
+                <option value="semaine">🗓️ Isaky herinandro (Alahady→Sabotsy)</option>
+                <option value="mois">📆 Isaky 4 herinandro (Mois)</option>
+                <option value="annee">🗂️ Isan-taona</option>
+            </select>
+            <div id="j-stock-table" style="overflow-x:auto; font-size:0.8rem;"></div>
+            <button class="btn-main" onclick="exportStockJournalCSV()" style="background:#059669; margin-top:12px;">📥 Export Excel — Varotra & Stock</button>
+        </div>
+
         <hr style="border:0; border-top:1px solid var(--border); margin:15px 0;">
         <button class="btn-main" onclick="exportRecetteJournalCSV()" style="background:#059669;">📥 Export Journal Épicerie Tendry</button>
         <button class="btn-outline" onclick="resetAllData()" style="color:var(--danger); border-color:var(--danger); margin-top:8px;">🗑️ Réinitialiser daholo (Mila Mot de passe)</button>
@@ -505,6 +520,7 @@
     };
     if (config.gardeCaisse === undefined) config.gardeCaisse = 0;
     let recettes = JSON.parse(localStorage.getItem('tendry_recettes')) || [];
+    let entrees = JSON.parse(localStorage.getItem('tendry_entrees')) || [];
     let panier = [];
     let cmdItems = [];
     let vMode = 'detail';
@@ -857,6 +873,10 @@ function registerProduct() {
             pvGros: parseFloat(document.getElementById('s-pv-gros').value) || 0
         };
         if(idx > -1) stock[idx] = item; else stock.push(item);
+        // Mirakitra ny "Entrée Stock" ho an'ny Journal Varotra & Stock (raha misy hazakazaka ampiana tokoa)
+        if(qG > 0) {
+            entrees.push({ date: new Date().toISOString(), item: name, qty: qG * conv, uniteAchat: document.getElementById('s-unit-gros').value, montant: qG * pAG, pAchatUnitaire: conv > 0 ? pAG / conv : pAG });
+        }
         saveData(); renderAll(); alert("✅ Stock voavao!");
     }
 
@@ -880,11 +900,31 @@ function registerProduct() {
         document.getElementById('t-name').value = ""; document.getElementById('t-vola').value = "";
     }
 
+    // Fandoavana Trosa tsikelikely (mila PIN) - manaisotra ny vola naloa amin'ny trosa mijanona
+    function payerTrosa(i) {
+        let d = dettes[i];
+        if(!d) return;
+        let montant = parseFloat(prompt(`Vola omen'i ${d.name} (Trosa ankehitriny: ${d.vola.toLocaleString()} Ar):`));
+        if(!montant || montant <= 0) return;
+        if(montant >= d.vola) {
+            alert(`✅ Voaray daholo ny trosan'i ${d.name} (${d.vola.toLocaleString()} Ar). Voafafa ny trosany.`);
+            dettes.splice(i, 1);
+        } else {
+            d.vola -= montant;
+            alert(`✅ Nandray ${montant.toLocaleString()} Ar avy amin'i ${d.name}. Trosa sisa: ${d.vola.toLocaleString()} Ar.`);
+        }
+        saveData(); renderAll();
+    }
+
     function renderTrosa() {
         document.getElementById('trosa-display').innerHTML = dettes.map((d, i) => `
-            <div style="display:flex; justify-content:space-between; padding:10px; border-bottom:1px solid var(--border);">
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px; border-bottom:1px solid var(--border);">
                 <span>${d.name} (${d.date})</span>
-                <b>${d.vola.toLocaleString()} Ar <button onclick="dettes.splice(${i},1);saveData();renderAll();" style="border:none;background:none;color:red;cursor:pointer;">✕</button></b>
+                <span style="display:flex; align-items:center; gap:8px;">
+                    <b>${d.vola.toLocaleString()} Ar</b>
+                    <button onclick="verifyPinAction(() => payerTrosa(${i}))" style="border:none;background:none;color:var(--success);cursor:pointer;font-size:1.15rem;" title="Manefa Trosa">💰</button>
+                    <button onclick="dettes.splice(${i},1);saveData();renderAll();" style="border:none;background:none;color:red;cursor:pointer;" title="Fafao">✕</button>
+                </span>
             </div>`).join('');
     }
 
@@ -977,6 +1017,7 @@ function activateApp() {
         localStorage.setItem('tendry_dettes', JSON.stringify(dettes)); 
         localStorage.setItem('tendry_config', JSON.stringify(config)); 
         localStorage.setItem('tendry_recettes', JSON.stringify(recettes)); 
+        localStorage.setItem('tendry_entrees', JSON.stringify(entrees)); 
     }
 
     // ============ FITAHIRIZANA RAKITRA (SAVE) - EpicerieBackup ============
@@ -1125,6 +1166,7 @@ function activateApp() {
             data: {
                 tendry_catalog: catalog, tendry_stock: stock, tendry_ventes: ventes,
                 tendry_dettes: dettes, tendry_config: config, tendry_recettes: recettes,
+                tendry_entrees: entrees,
                 tendry_logo: localStorage.getItem('tendry_logo') || ""
             }
         };
@@ -1150,6 +1192,7 @@ function activateApp() {
                 localStorage.setItem('tendry_dettes', JSON.stringify(d.tendry_dettes || []));
                 localStorage.setItem('tendry_config', JSON.stringify(d.tendry_config || {}));
                 localStorage.setItem('tendry_recettes', JSON.stringify(d.tendry_recettes || []));
+                localStorage.setItem('tendry_entrees', JSON.stringify(d.tendry_entrees || []));
                 if(d.tendry_logo) localStorage.setItem('tendry_logo', d.tendry_logo);
                 alert("✅ Backup voaverina soa aman-tsara! Havaozina ny application...");
                 location.reload();
@@ -1226,9 +1269,12 @@ function activateApp() {
     function setJournalTab(tab) {
         document.getElementById('j-tab-saisie').classList.toggle('active', tab === 'saisie');
         document.getElementById('j-tab-hist').classList.toggle('active', tab === 'hist');
+        document.getElementById('j-tab-stock').classList.toggle('active', tab === 'stock');
         document.getElementById('j-panel-saisie').style.display = tab === 'saisie' ? 'block' : 'none';
         document.getElementById('j-panel-hist').style.display = tab === 'hist' ? 'block' : 'none';
+        document.getElementById('j-panel-stock').style.display = tab === 'stock' ? 'block' : 'none';
         if(tab === 'hist') renderJournalHistory();
+        if(tab === 'stock') renderStockJournal();
     }
 
     function loadRecetteForDate() {
@@ -1349,6 +1395,124 @@ function activateApp() {
         return Object.values(groups).sort((a,b) => a.year.localeCompare(b.year));
     }
 
+    // ============ JOURNAL VAROTRA & STOCK (Ventes conclues + Entrées Stock) ============
+    function buildStockJournalDaily() {
+        let days = {};
+        ventes.forEach(v => {
+            let day = v.date.slice(0,10);
+            if(!days[day]) days[day] = { date: day, ca: 0, profit: 0, achats: 0 };
+            days[day].ca += v.total;
+            days[day].profit += v.profit;
+        });
+        entrees.forEach(e => {
+            let day = e.date.slice(0,10);
+            if(!days[day]) days[day] = { date: day, ca: 0, profit: 0, achats: 0 };
+            days[day].achats += e.montant;
+        });
+        return Object.values(days).sort((a,b) => a.date.localeCompare(b.date));
+    }
+
+    function buildStockJournalWeekly() {
+        let days = buildStockJournalDaily();
+        let groups = {};
+        days.forEach(d => {
+            let ws = getWeekStart(new Date(d.date + 'T00:00:00'));
+            let idx = getWeekIndex(ws);
+            if(!groups[idx]) groups[idx] = { idx, weekStart: ws, ca: 0, profit: 0, achats: 0 };
+            groups[idx].ca += d.ca;
+            groups[idx].profit += d.profit;
+            groups[idx].achats += d.achats;
+        });
+        let arr = Object.values(groups).map(g => {
+            let weekEnd = new Date(g.weekStart); weekEnd.setDate(weekEnd.getDate() + 6);
+            return { ...g, weekEnd };
+        });
+        arr.sort((a,b) => a.idx - b.idx);
+        return arr;
+    }
+
+    function buildStockJournalMonthly() {
+        let weeks = buildStockJournalWeekly();
+        let groups = {};
+        weeks.forEach(w => {
+            let quadIdx = Math.floor(w.idx / 4);
+            if(!groups[quadIdx]) groups[quadIdx] = { quadIdx, weeks: [], ca: 0, profit: 0, achats: 0 };
+            groups[quadIdx].weeks.push(w);
+            groups[quadIdx].ca += w.ca;
+            groups[quadIdx].profit += w.profit;
+            groups[quadIdx].achats += w.achats;
+        });
+        let arr = Object.values(groups).map(g => ({ ...g, start: g.weeks[0].weekStart, end: g.weeks[g.weeks.length-1].weekEnd }));
+        arr.sort((a,b) => a.quadIdx - b.quadIdx);
+        return arr;
+    }
+
+    function buildStockJournalYearly() {
+        let days = buildStockJournalDaily();
+        let groups = {};
+        days.forEach(d => {
+            let year = d.date.slice(0,4);
+            if(!groups[year]) groups[year] = { year, ca: 0, profit: 0, achats: 0 };
+            groups[year].ca += d.ca;
+            groups[year].profit += d.profit;
+            groups[year].achats += d.achats;
+        });
+        return Object.values(groups).sort((a,b) => a.year.localeCompare(b.year));
+    }
+
+    function renderStockJournal() {
+        let mode = document.getElementById('j-stock-mode').value;
+        let html = '';
+        function profitCell(p) {
+            let cls = p >= 0 ? 'style="color:var(--success);"' : 'style="color:var(--danger);"';
+            let label = p >= 0 ? 'Tombony' : 'Fatiantoka';
+            return `<b ${cls}>${Math.round(Math.abs(p)).toLocaleString()} Ar (${label})</b>`;
+        }
+        if(mode === 'jour') {
+            let rows = buildStockJournalDaily().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Daty</th><th>CA Varotra</th><th>Achats/Entrée</th><th>Tombony/Fatiantoka</th></tr></thead><tbody>` +
+                rows.map(d => `<tr><td>${d.date}</td><td>${Math.round(d.ca).toLocaleString()}</td><td>${Math.round(d.achats).toLocaleString()}</td><td>${profitCell(d.profit)}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'semaine') {
+            let rows = buildStockJournalWeekly().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Herinandro (Alahady→Sabotsy)</th><th>CA Varotra</th><th>Achats/Entrée</th><th>Tombony/Fatiantoka</th></tr></thead><tbody>` +
+                rows.map(w => `<tr><td>${fmtD(w.weekStart)}<br>${fmtD(w.weekEnd)}</td><td>${Math.round(w.ca).toLocaleString()}</td><td>${Math.round(w.achats).toLocaleString()}</td><td>${profitCell(w.profit)}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'mois') {
+            let rows = buildStockJournalMonthly().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Vanim-potoana (4 herin.)</th><th>CA Varotra</th><th>Achats/Entrée</th><th>Tombony/Fatiantoka</th></tr></thead><tbody>` +
+                rows.map(g => `<tr><td>${fmtD(g.start)}<br>${fmtD(g.end)}</td><td>${Math.round(g.ca).toLocaleString()}</td><td>${Math.round(g.achats).toLocaleString()}</td><td>${profitCell(g.profit)}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        } else if(mode === 'annee') {
+            let rows = buildStockJournalYearly().slice().reverse();
+            html = rows.length ? `<table class="table-res"><thead><tr><th>Taona</th><th>CA Varotra</th><th>Achats/Entrée</th><th>Tombony/Fatiantoka</th></tr></thead><tbody>` +
+                rows.map(g => `<tr><td>${g.year}</td><td>${Math.round(g.ca).toLocaleString()}</td><td>${Math.round(g.achats).toLocaleString()}</td><td>${profitCell(g.profit)}</td></tr>`).join('') +
+                `</tbody></table>` : '';
+        }
+        document.getElementById('j-stock-table').innerHTML = html || '<p style="text-align:center; color:var(--text-sub); padding:15px 0;">Mbola tsy misy angona (Varotra na Fidirana Stock).</p>';
+    }
+
+    function exportStockJournalCSV() {
+        let csv = "\uFEFFJOURNAL VAROTRA & STOCK - EPICERIE TENDRY\n\n";
+        csv += "--- ISAN'ANDRO ---\nDaty,CA Varotra,Achats/Entree,Tombony(+)/Fatiantoka(-)\n";
+        buildStockJournalDaily().forEach(d => csv += `${d.date},${Math.round(d.ca)},${Math.round(d.achats)},${Math.round(d.profit)}\n`);
+        csv += "\n--- ISAKY HERINANDRO (Alahady->Sabotsy) ---\nHerinandro Manomboka,Herinandro Mifarana,CA Varotra,Achats/Entree,Tombony(+)/Fatiantoka(-)\n";
+        buildStockJournalWeekly().forEach(w => csv += `${fmtD(w.weekStart)},${fmtD(w.weekEnd)},${Math.round(w.ca)},${Math.round(w.achats)},${Math.round(w.profit)}\n`);
+        csv += "\n--- ISAKY 4 HERINANDRO (MOIS) ---\nManomboka,Mifarana,CA Varotra,Achats/Entree,Tombony(+)/Fatiantoka(-)\n";
+        buildStockJournalMonthly().forEach(g => csv += `${fmtD(g.start)},${fmtD(g.end)},${Math.round(g.ca)},${Math.round(g.achats)},${Math.round(g.profit)}\n`);
+        csv += "\n--- ISAN-TAONA ---\nTaona,CA Varotra,Achats/Entree,Tombony(+)/Fatiantoka(-)\n";
+        buildStockJournalYearly().forEach(g => csv += `${g.year},${Math.round(g.ca)},${Math.round(g.achats)},${Math.round(g.profit)}\n`);
+
+        csv += "\n\n--- DETAIL VAROTRA (SORTIE) ---\nDaty,Entana,Qty,Total,Tombony\n";
+        [...ventes].sort((a,b) => a.date.localeCompare(b.date)).forEach(v => csv += `${v.date},${(v.item||'').replace(/,/g,' ')},${v.qty},${Math.round(v.total)},${Math.round(v.profit)}\n`);
+
+        csv += "\n--- DETAIL FIDIRANA STOCK (ENTREE) ---\nDaty,Entana,Qty,Montant\n";
+        [...entrees].sort((a,b) => a.date.localeCompare(b.date)).forEach(e => csv += `${e.date},${(e.item||'').replace(/,/g,' ')},${e.qty},${Math.round(e.montant)}\n`);
+
+        let filename = "Journal_Varotra_Stock_Tendry_" + new Date().toISOString().slice(0,10) + ".csv";
+        saveFileSmart(filename, csv, "text/csv;charset=utf-8;");
+    }
+
     function renderJournalHistory() {
         let mode = document.getElementById('j-hist-mode').value;
         let html = '';
@@ -1407,6 +1571,7 @@ function activateApp() {
         localStorage.removeItem('tendry_ventes');
         localStorage.removeItem('tendry_dettes');
         localStorage.removeItem('tendry_recettes');
+        localStorage.removeItem('tendry_entrees');
         let keepConfig = { pin: config.pin, active: config.active, name: config.name, nif: config.nif, stat: config.stat, trialStart: config.trialStart, theme: config.theme, gardeCaisse: 0 };
         localStorage.setItem('tendry_config', JSON.stringify(keepConfig));
         alert("✅ Voafoana daholo ny angona.");
