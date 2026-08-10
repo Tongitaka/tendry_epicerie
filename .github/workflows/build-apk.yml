@@ -53,6 +53,41 @@ jobs:
       - name: Patch MainActivity.java (fangatahana alalana Camera/Storage)
         run: python3 patch_mainactivity.py
 
+      # versionCode mitombo hatrany (isaky ny build) mba heken'i Android ho "mise à jour"
+      - name: Patch versionCode/versionName (auto-increment)
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: "1.0.${{ github.run_number }}"
+        run: python3 patch_version.py
+
+      # Raha efa voapetraka ny 4 Secrets DEBUG_KEYSTORE_*, dia clé debug MITOVY HATRANY no
+      # ampiasaina isaky ny build (tsy random intsony) mba hahafahana manao "mise à jour"
+      # amin'ny APK debug efa napetraka teo aloha, tsy misy fahaverezan'ny données.
+      - name: Check debug signing secrets
+        id: checkdebugsecrets
+        run: |
+          if [ -z "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" ]; then
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Decode debug keystore
+        if: steps.checkdebugsecrets.outputs.has_secrets == 'true'
+        run: echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > "$GITHUB_WORKSPACE/tendry-debug.keystore"
+
+      - name: Patch debug signingConfig (build.gradle)
+        env:
+          DEBUG_KEYSTORE_PATH: ${{ github.workspace }}/tendry-debug.keystore
+          DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+          DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+          DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+        run: |
+          if [ "${{ steps.checkdebugsecrets.outputs.has_secrets }}" != "true" ]; then
+            unset DEBUG_KEYSTORE_PATH
+          fi
+          python3 patch_debug_signing.py
+
       - name: Grant execute permission for gradlew
         run: chmod +x android/gradlew
 
@@ -113,6 +148,13 @@ jobs:
 
       - name: Patch MainActivity.java (fangatahana alalana Camera/Storage)
         run: python3 patch_mainactivity.py
+
+      # versionCode mitombo hatrany (isaky ny build) mba heken'i Android ho "mise à jour"
+      - name: Patch versionCode/versionName (auto-increment)
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: "1.0.${{ github.run_number }}"
+        run: python3 patch_version.py
 
       # Ireto dingana manaraka ireto dia mandeha raha efa voapetraka ny Secrets efatra
       # (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). Raha mbola tsy
